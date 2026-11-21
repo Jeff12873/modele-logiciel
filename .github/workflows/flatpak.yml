@@ -1,0 +1,71 @@
+# À chaque envoi sur « main » : fabrique <Nom>.flatpak et le publie dans les Releases GitHub.
+# Le dépôt Flatpak FlatKein récupère ensuite cette Release, la signe et la distribue (Warehouse).
+#
+# Secrets facultatifs (GitHub → Settings → Secrets → Actions) :
+#   FLATKEIN_JETON : prévenir FlatKein tout de suite (sinon il vérifie toutes les 6 heures) ;
+#   SECRETS_JSON   : contenu de bureau/secrets.json (identifiants OAuth…), écrit seulement dans le paquet.
+#
+# Le dépôt « modele-logiciel » lui-même ne publie rien : seules ses copies le font.
+
+name: Flatpak
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  construire:
+    if: github.repository != 'Jeff12873/modele-logiciel'
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Outils Flatpak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.freedesktop.Platform//25.08 org.electronjs.Electron2.BaseApp//25.08
+
+      - name: Dépendances
+        run: npm ci
+
+      # Le numéro de version monte à chaque publication : 1.0.<numéro du build>
+      - name: Version
+        run: npm version "1.0.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
+      - name: Secrets
+        env:
+          SECRETS_JSON: ${{ secrets.SECRETS_JSON }}
+        if: env.SECRETS_JSON != ''
+        run: printf '%s' "$SECRETS_JSON" > bureau/secrets.json
+
+      - name: Flatpak
+        run: PUBLIER=1 sh outils/flatpak.sh
+
+      - name: Release
+        run: |
+          nom=$(node -p "require('./package.json').productName")
+          version="v$(node -p "require('./package.json').version")"
+          gh release create "$version" "$nom.flatpak" --title "$nom $version" --notes "${{ github.event.head_commit.message }}"
+          # On garde les 3 dernières versions
+          gh release list --limit 100 --json tagName --jq '.[3:][].tagName' | while read -r ancienne; do
+            gh release delete "$ancienne" --yes --cleanup-tag
+          done
+
+      - name: Prévenir FlatKein
+        env:
+          JETON: ${{ secrets.FLATKEIN_JETON }}
+        if: env.JETON != ''
+        run: GH_TOKEN="$JETON" gh api repos/Jeff12873/FlatKein/dispatches -f event_type=nouvelle-version

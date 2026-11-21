@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.AppImage
+*.flatpak
+prive/
+.claude/
+.directory
+# Fichiers créés au build à partir des secrets GitHub : jamais dans le dépôt
+bureau/secrets.json

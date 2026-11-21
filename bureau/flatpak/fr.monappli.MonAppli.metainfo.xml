@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>fr.monappli.MonAppli</id>
+  <name>MonAppli</name>
+  <summary>Description courte de l'application</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>Ce que fait l'application, en deux ou trois phrases : c'est ce qu'affichent Warehouse et les logithèques.</p>
+    <p>Aucune donnée dans l'application : tout est dans les fichiers de l'utilisateur.</p>
+  </description>
+  <launchable type="desktop-id">fr.monappli.MonAppli.desktop</launchable>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <url type="homepage">https://github.com/Jeff12873/monappli</url>
+  <developer id="io.github.jeff12873">
+    <name>Jeff12873</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-11-21"/>
+  </releases>
+</component>

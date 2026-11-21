@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonAppli</title>
+<link rel="icon" href="icone.svg">
+<style>
+/* ---------- Thème : toutes les couleurs sont des variables, définies une seule fois ---------- */
+:root{--paper:#FAFAF7;--card:#FFFFFF;--ink:#1F2430;--muted:#6B7280;--line:#E4E2DC;--accent:#7C6CF0;--ok:#16A34A;--warn:#D97706;--bad:#DC2626;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#16151D;--card:#201F2A;--ink:#ECEAF4;--muted:#9C99AD;--line:#33313F;--accent:#A99CFF;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#16151D;--card:#201F2A;--ink:#ECEAF4;--muted:#9C99AD;--line:#33313F;--accent:#A99CFF;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{margin:0;font-size:20px}
+header .version{font-size:12px;color:var(--muted)}
+header .outils{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+main{padding:20px;max-width:960px;margin:0 auto}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.maj{background:#FDE68A;color:#1F2430;border-color:#F59E0B;font-weight:700}
+.hidden{display:none !important}
+.carte{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.vide{color:var(--muted);text-align:center;padding:40px 0}
+.note{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:none}
+.note small{color:var(--muted)}
+dialog{border:none;border-radius:14px;padding:0;background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(560px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog form{padding:20px}
+dialog h3{margin:0 0 12px}
+dialog label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+dialog input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--paper);color:inherit;font:inherit}
+.ligne{display:flex;gap:8px;align-items:center}
+.ligne input{flex:1}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
+.aide{display:grid;grid-template-columns:180px 1fr;gap:16px;max-height:70vh}
+.aide nav{display:flex;flex-direction:column;gap:4px;overflow:auto}
+.aide nav button{text-align:left}
+.aide article{overflow:auto;padding-right:6px}
+.aide .astuce{background:color-mix(in srgb, var(--accent) 12%, transparent);border-radius:8px;padding:8px 10px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--ink);color:var(--paper);border-radius:10px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:100;max-width:calc(100vw - 32px)}
+.toast button{border:1px solid currentColor;background:none;color:inherit;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
+.focus{animation:clignote .8s ease-in-out 3}
+@keyframes clignote{50%{box-shadow:0 0 0 3px var(--accent)}}
+@media (max-width:640px){.aide{grid-template-columns:1fr}.aide nav{flex-direction:row;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="titre">MonAppli</h1><span class="version" id="version"></span>
+  <div class="outils">
+    <button class="btn maj hidden" id="btnMaj" type="button">⬆ Mise à jour</button>
+    <button class="btn" id="btnTheme" type="button" title="Clair / sombre / automatique">◐</button>
+    <button class="btn" id="btnReglages" type="button">⚙️ Réglages</button>
+    <button class="btn" id="btnAide" type="button">❓ Aide</button>
+  </div>
+</header>
+
+<main>
+  <!-- EXEMPLE à remplacer par le métier de l'application : lister les notes d'un dossier du coffre -->
+  <div class="carte">
+    <div class="ligne"><b style="flex:1">Notes du dossier « <span id="nomDossier"></span> »</b><button class="btn" id="btnRecharger" type="button">↻ Recharger</button></div>
+    <div id="liste"><div class="vide">Choisis ton coffre Obsidian dans ⚙️ Réglages.</div></div>
+  </div>
+</main>
+
+<dialog id="dlgReglages">
+  <form method="dialog" id="formReglages">
+    <h3>Réglages</h3>
+    <label>Coffre Obsidian</label>
+    <div class="ligne"><input type="text" id="rCoffre" readonly placeholder="Aucun coffre choisi"><button class="btn" type="button" id="rChoisir">Choisir…</button></div>
+    <label for="rDossier">Dossier de notes à afficher (dans le coffre)</label>
+    <input type="text" id="rDossier" autocomplete="off" placeholder="ex. 02.Area">
+    <div class="actions"><button class="btn" type="button" id="rFermer">Fermer</button><button class="btn on" type="submit">Enregistrer</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgAide">
+  <form method="dialog">
+    <h3>Aide</h3>
+    <div class="aide"><nav id="aideNav"></nav><article id="aideTexte"></article></div>
+    <div class="actions"><span class="version" id="aideVersion" style="margin-right:auto;align-self:center"></span><button class="btn on" type="submit">Fermer</button></div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+/* ---------- Socle : utilitaires communs à toute l'application ---------- */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const BUREAU = !!window.appli;            // false = page ouverte dans un navigateur (mode autonome)
+// Temporisations (ms) : réglées en un seul endroit
+const TEMPO = {toast: 4500, toastAction: 6500, clignote: 2400, verifMaj: 4000};
+const messageErreur = (e) => String(e && e.message || e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
+
+// Notification en bas d'écran, avec un bouton facultatif (« Annuler », « Voir »…)
+let tToast = null;
+function toast(msg, action, fn){
+  document.querySelectorAll('.toast').forEach(x => x.remove()); clearTimeout(tToast);
+  const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = `<span>${esc(msg)}</span>`;
+  if (action){ const b = document.createElement('button'); b.type = 'button'; b.textContent = action; b.onclick = () => { el.remove(); fn(); }; el.appendChild(b); }
+  document.body.appendChild(el); tToast = setTimeout(() => el.remove(), action ? TEMPO.toastAction : TEMPO.toast);
+}
+// Faire défiler jusqu'à un élément et le faire clignoter
+function clignoter(el){ if (!el) return; el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.remove('focus'); void el.offsetWidth; el.classList.add('focus'); setTimeout(() => el.classList.remove('focus'), TEMPO.clignote); }
+
+/* ---------- Thème : automatique (système) → clair → sombre ---------- */
+function appliquerTheme(){ const t = store.get('theme'); if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+$('#btnTheme').onclick = () => { const t = store.get('theme'), suivant = !t ? 'light' : t === 'light' ? 'dark' : ''; store.set('theme', suivant); appliquerTheme(); toast(`Thème : ${suivant === 'light' ? 'clair' : suivant === 'dark' ? 'sombre' : 'automatique'}`); };
+appliquerTheme();
+
+/* ---------- Données de l'application ----------
+   Bureau : un fichier JSON dans le coffre (synchronisé entre ordinateurs).
+   Navigateur : localStorage (mode autonome, pour une version web). */
+let CFG = {}, etat = {dossier: '02.Area'};
+async function chargerEtat(){
+  if (BUREAU){ const d = await window.appli.lireDonnees(); if (d && d.etat) etat = {...etat, ...d.etat}; }
+  else { try { etat = {...etat, ...JSON.parse(store.get('etat') || '{}')}; } catch(e){} }
+}
+let tSauver = null;
+function sauver(){
+  clearTimeout(tSauver);
+  tSauver = setTimeout(() => { if (BUREAU && CFG.coffre) window.appli.ecrireDonnees({etat}).catch(e => alert('Enregistrement impossible : ' + messageErreur(e))); else store.set('etat', JSON.stringify(etat)); }, 400);
+}
+
+/* ---------- EXEMPLE (à remplacer) : lire les notes d'un dossier et leurs propriétés ---------- */
+async function afficher(){
+  $('#nomDossier').textContent = etat.dossier;
+  const box = $('#liste');
+  if (!BUREAU){ box.innerHTML = '<div class="vide">Mode navigateur : la lecture du coffre n\'est possible que dans l\'application de bureau.</div>'; return; }
+  if (!CFG.coffre){ box.innerHTML = '<div class="vide">Choisis ton coffre Obsidian dans ⚙️ Réglages.</div>'; return; }
+  let notes = [];
+  try { notes = await window.appli.lireNotes(etat.dossier); } catch(e){ box.innerHTML = `<div class="vide">${esc(messageErreur(e))}</div>`; return; }
+  if (!notes.length){ box.innerHTML = '<div class="vide">Aucune note dans ce dossier.</div>'; return; }
+  box.innerHTML = '';
+  notes.sort((a, b) => b.mtime - a.mtime).forEach(n => {
+    const el = document.createElement('div'); el.className = 'note';
+    const props = Object.keys(n.proprietes).slice(0, 4).join(', ');
+    el.innerHTML = `<span>${esc(n.nom.replace(/\.md$/, ''))}</span><small>${esc(props || 'sans propriétés')} · ${new Date(n.mtime).toLocaleDateString('fr-FR')}</small>`;
+    el.ondblclick = () => window.appli.ouvrirLien(`obsidian://open?vault=${encodeURIComponent(CFG.nomCoffre)}&file=${encodeURIComponent(etat.dossier + '/' + n.nom)}`);
+    el.title = 'Double-clic : ouvrir dans Obsidian';
+    box.appendChild(el);
+  });
+}
+$('#btnRecharger').onclick = afficher;
+
+/* ---------- Réglages ---------- */
+$('#btnReglages').onclick = () => { $('#rCoffre').value = CFG.coffre || ''; $('#rDossier').value = etat.dossier; $('#dlgReglages').showModal(); };
+$('#rFermer').onclick = () => $('#dlgReglages').close();
+$('#rChoisir').onclick = async () => {
+  if (!BUREAU) return alert('Disponible dans l\'application de bureau.');
+  try { const c = await window.appli.choisirCoffre(); if (c){ CFG = await window.appli.config(); $('#rCoffre').value = c; await chargerEtat(); } } catch(e){ alert(messageErreur(e)); }
+};
+$('#formReglages').onsubmit = () => { etat.dossier = $('#rDossier').value.trim() || etat.dossier; sauver(); afficher(); toast('Réglages enregistrés.'); };
+
+/* ---------- Aide intégrée : à compléter à CHAQUE nouvelle fonction ---------- */
+const AIDE = [
+  {t: '1. Premiers pas', h: `<p>Ouvre <b>⚙️ Réglages</b>, choisis ton <b>coffre Obsidian</b> et le dossier de notes à afficher.</p>
+    <p class="astuce">Tes données restent dans tes fichiers : l'application ne garde que le chemin du coffre, sur cet ordinateur.</p>`},
+  {t: '2. Thème', h: `<p>Le bouton <b>◐</b> passe de automatique (suit le système) à clair, puis sombre.</p>`},
+  {t: '3. Mises à jour', h: `<p>Au démarrage, l'application vérifie s'il existe une nouvelle version. Si oui, le bouton jaune <b>⬆ Mise à jour</b> apparaît : clique dessus pour la commande à lancer, ou mets à jour depuis Warehouse.</p>`},
+];
+function ouvrirAide(i = 0){
+  const nav = $('#aideNav'); nav.innerHTML = '';
+  AIDE.forEach((s, k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (k === i ? ' on' : ''); b.textContent = s.t; b.onclick = () => ouvrirAide(k); nav.appendChild(b); });
+  $('#aideTexte').innerHTML = `<h3>${esc(AIDE[i].t)}</h3>${AIDE[i].h}`;
+  $('#aideVersion').textContent = CFG.version ? `${CFG.nom} ${CFG.version}` : '';
+  if (!$('#dlgAide').open) $('#dlgAide').showModal();
+}
+$('#btnAide').onclick = () => ouvrirAide(0);
+
+/* ---------- Mises à jour : vérifiées au démarrage ---------- */
+async function verifierMaj(){
+  if (!BUREAU) return;
+  const r = await window.appli.verifierMaj().catch(() => null);
+  if (!r || !r.nouvelle) return;
+  const b = $('#btnMaj'); b.classList.remove('hidden'); b.title = `Version ${r.derniere} disponible (installée : ${r.actuelle})`;
+  b.onclick = () => { navigator.clipboard.writeText(r.commande).catch(() => {}); alert(`Version ${r.derniere} disponible.\n\nCommande copiée, à coller dans un terminal :\n${r.commande}\n\nOu : Warehouse → rafraîchir → Mettre à jour.`); };
+}
+
+/* ---------- Démarrage ---------- */
+(async () => {
+  if (BUREAU){
+    CFG = await window.appli.config();
+    document.title = CFG.nom; $('#titre').textContent = CFG.nom; $('#version').textContent = 'v' + CFG.version;
+    window.appli.surDonneesChangees(async () => { await chargerEtat(); afficher(); toast('Données mises à jour depuis un autre appareil.'); });
+  }
+  await chargerEtat(); afficher();
+  setTimeout(verifierMaj, TEMPO.verifMaj);
+})();
+</script>
+</body>
+</html>

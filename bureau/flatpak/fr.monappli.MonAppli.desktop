@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MonAppli
+Comment=Description courte de l'application
+Exec=monappli %U
+Icon=fr.monappli.MonAppli
+Categories=Utility;
+Keywords=obsidian;
+StartupWMClass=monappli
+Terminal=false

@@ -1,0 +1,31 @@
+{
+  "name": "monappli",
+  "productName": "MonAppli",
+  "version": "1.0.0",
+  "description": "Description courte de l'application.",
+  "main": "bureau/main.js",
+  "private": true,
+  "flatpak": {
+    "id": "fr.monappli.MonAppli",
+    "depot": "Jeff12873/monappli"
+  },
+  "scripts": {
+    "demarrer": "electron .",
+    "flatpak": "sh outils/flatpak.sh",
+    "appimage": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "fr.monappli.MonAppli",
+    "productName": "MonAppli",
+    "artifactName": "MonAppli-${version}.AppImage",
+    "files": ["index.html", "icone.svg", "bureau/**", "package.json"],
+    "directories": { "output": "dist" },
+    "linux": { "target": "AppImage", "category": "Utility", "icon": "bureau/icone.png", "syncDesktopName": true }
+  },
+  "author": "Jeff12873",
+  "desktopName": "monappli.desktop"
+}
